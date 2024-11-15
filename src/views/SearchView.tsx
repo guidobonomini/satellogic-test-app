@@ -22,7 +22,7 @@ interface SearchViewProps {
 
 const SearchView: React.FC<SearchViewProps> = ({ initialLat, initialLon }) => {
   const [position, setPosition] = useState<[number, number]>([initialLat, initialLon]);
-  const [locationInfo, setLocationInfo] = useState<string | null>(null); // Store location information
+  const [locationInfo, setLocationInfo] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const UpdateMapCenter = () => {
@@ -51,7 +51,7 @@ const SearchView: React.FC<SearchViewProps> = ({ initialLat, initialLon }) => {
   const fetchCapturesAndRedirect = async () => {
     try {
       const captures = await getRecentCaptures(position[0], position[1]);
-      navigate('/results', { state: { captures } });
+      navigate('/results', { state: { captures, position, showTimeline: false } });
     } catch (error) {
       console.error('Error fetching captures:', error);
       alert("Failed to fetch past and future captures.");
@@ -61,7 +61,7 @@ const SearchView: React.FC<SearchViewProps> = ({ initialLat, initialLon }) => {
   const fetchTimelineAndRedirect = async () => {
     try {
       const captures = await getArchiveCaptures(position[0], position[1]);
-      navigate('/results', { state: { captures, showTimeline: true } }); // Activate timeline mode
+      navigate('/results', { state: { captures, position, showTimeline: true } });
     } catch (error) {
       console.error('Error fetching timeline data:', error);
       alert("Failed to fetch timeline data.");
