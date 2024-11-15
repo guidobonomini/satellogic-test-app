@@ -1,36 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getArchiveCaptures, getFutureOpportunities, getRecentCaptures } from '../api/imageryApi';
+import { Capture, ArchiveCapture, FutureOpportunity } from '../types/ImageryTypes';
 import './ResultView.css';
 
-interface Capture {
-  captureId: string;
-  captureDate: string;
-  resolution: string;
-  location: {
-    lat: number;
-    lon: number;
-  };
-}
-
-interface ArchiveCapture {
-  type: string;
-  geometry: {
-    type: string;
-    coordinates: [number, number]; // [longitude, latitude]
-  };
-  properties: {
-    captureId: string;
-    captureDate: string;
-    resolution: string;
-  };
-}
-
-interface FutureOpportunity {
-  opportunityId: string;
-  estimatedCaptureDate: string;
-  confidence: string;
-}
 
 const ResultView: React.FC = () => {
   const location = useLocation();
@@ -42,33 +15,9 @@ const ResultView: React.FC = () => {
   const [archiveCaptures, setArchiveCaptures] = useState<ArchiveCapture[]>([]);
   const [futureOpportunities, setFutureOpportunities] = useState<FutureOpportunity[]>([]);
 
-  // Dynamically determine initial lat/lon based on the active tab
-  const getInitialCoordinates = () => {
-    if (activeTab === 'recent') {
-      return captures[0]?.location || { lat: 0, lon: 0 };
-    }
-    if (activeTab === 'timeline') {
-      return captures[0]?.geometry?.coordinates
-        ? { lat: captures[0].geometry.coordinates[1], lon: captures[0].geometry.coordinates[0] }
-        : { lat: 0, lon: 0 };
-    }
-    return { lat: 0, lon: 0 };
-  };
-
-  const { lat, lon } = getInitialCoordinates();
-
-  useEffect(() => {
-    console.log("Active tab:", activeTab);
-    if (activeTab === 'recent') {
-      fetchRecentCaptures();
-    } else if (activeTab === 'timeline') {
-      fetchTimelineData();
-    }
-  }, [activeTab]);
-
   const fetchRecentCaptures = async () => {
     try {
-      const data = await getRecentCaptures(lat, lon);
+      const data = await getRecentCaptures(position[0], position[1]);
       setRecentCaptures(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching recent captures:', error);
@@ -80,9 +29,6 @@ const ResultView: React.FC = () => {
       const archiveData = await getArchiveCaptures(position[0], position[1]);
       const futureData = await getFutureOpportunities(position[0], position[1]);
 
-      console.log("Fetched archive captures:", archiveData);
-      console.log("Fetched future opportunities:", futureData);
-
       setArchiveCaptures(archiveData ? archiveData.features : []);
       setFutureOpportunities(Array.isArray(futureData) ? futureData : []);
     } catch (error) {
@@ -90,11 +36,19 @@ const ResultView: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    if (activeTab === 'recent') {
+      fetchRecentCaptures();
+    } else if (activeTab === 'timeline') {
+      fetchTimelineData();
+    }
+  }, [activeTab]);
+
   return (
     <div className="result-view">
       <header className="result-header">
         <button className="back-button" onClick={() => navigate(-1)}>Back</button>
-        <h1>{activeTab === 'recent' ? 'Recent Imagery' : 'Timeline View'}</h1>
+        <h1>{activeTab === 'recent' ? 'Recent Imagery' : 'Timeline'}</h1>
         <div className="tab-switcher">
           <button
             className={`tab-button ${activeTab === 'recent' ? 'active' : ''}`}
@@ -134,40 +88,33 @@ const ResultView: React.FC = () => {
           )}
         </div>
       ) : (
-        <div className="timeline-section">
+        <div className="timeline">
           <ul>
-            {archiveCaptures.length > 0 ? (
-              archiveCaptures.map((capture) => (
-                <li key={capture.properties.captureId} className="archive-capture">
+            {archiveCaptures.map((capture) => (
+              <li key={capture.properties.captureId} className="timeline-item">
+                <div className="timeline-content">
                   <div className="capture-image">
                     <img
-                      src={`https://static-maps.yandex.ru/1.x/?ll=${capture.geometry?.coordinates?.[0]},${capture.geometry?.coordinates?.[1]}&z=16&l=sat&size=650,450`}
-                      alt={`Archive capture on ${new Date(capture.properties.captureDate).toLocaleDateString()}`}
-                      className="satellite-image"
+                      src={`https://static-maps.yandex.ru/1.x/?ll=${capture.geometry.coordinates[0]},${capture.geometry.coordinates[1]}&z=16&l=sat&size=650,450`}
+                      alt={`Capture on ${new Date(capture.properties.captureDate).toLocaleDateString()}`}
                     />
                   </div>
                   <p><strong>Date:</strong> {new Date(capture.properties.captureDate).toLocaleDateString()}</p>
                   <p><strong>Resolution:</strong> {capture.properties.resolution}</p>
-                </li>
-              ))
-            ) : (
-              <p>No archive captures available.</p>
-            )}
-            {futureOpportunities.length > 0 && (
-              <div className="future-opportunities">
-                <h3>Future Opportunities</h3>
-                <ul>
-                  {futureOpportunities.map((opportunity) => (
-                    <li key={opportunity.opportunityId} className="future-opportunity">
-                      <p><strong>Estimated Date:</strong> {new Date(opportunity.estimatedCaptureDate).toLocaleDateString()}</p>
-                      <p><strong>Confidence:</strong> {opportunity.confidence}</p>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+                </div>
+              </li>
+            ))}
+            {futureOpportunities.map((opportunity) => (
+              <li key={opportunity.opportunityId} className="timeline-item">
+                <div className="timeline-content">
+                  <p><strong>Estimated Date:</strong> {new Date(opportunity.estimatedCaptureDate).toLocaleDateString()}</p>
+                  <p><strong>Confidence:</strong> {opportunity.confidence}</p>
+                </div>
+              </li>
+            ))}
           </ul>
         </div>
+
       )}
     </div>
   );
