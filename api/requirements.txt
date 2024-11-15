@@ -1,0 +1,3 @@
+fastapi[all]  # Installs FastAPI with additional dependencies for CORS, WebSocket, etc.
+uvicorn       # ASGI server to run FastAPI applications
+pydantic      # Optional, as it's a FastAPI dependency

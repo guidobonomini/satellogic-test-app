@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000" # Map Nginx's default port 80 to localhost:3000
+    networks:
+      - app-network
+    environment:
+      - REACT_APP_API_URL=http://api:4000 # Point to the FastAPI api service
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000" # Expose FastAPI on port 4000
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
